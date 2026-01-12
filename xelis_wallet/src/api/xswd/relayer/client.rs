@@ -42,7 +42,7 @@ impl Client {
         let mut ws = connect(&target).await?;
         debug!("ws connected, sending test ping");
 
-        if let Err(e) = ws.send(Message::Ping(Vec::new())).await {
+        if let Err(e) = ws.send(Message::Text("ping".into())).await {
             error!("initial ping send failed: {e:?}");
         } else {
             debug!("initial ping send ok");
