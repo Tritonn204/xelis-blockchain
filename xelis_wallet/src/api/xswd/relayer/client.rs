@@ -43,7 +43,7 @@ impl Client {
         let (sender, receiver) = mpsc::channel(64);
         spawn_task(format!("xswd-relayer-{}", state.get_id()), async move {
             if let Err(e) = Self::background_task(ws, &state, &relayer, receiver, cipher).await {
-                debug!("Error on xswd relayer #{}: {:#?}", state.get_id(), e);
+                debug!("Error on xswd relayer #{}: {}", state.get_id(), e);
             }
 
             relayer.on_close(state).await;
@@ -103,9 +103,11 @@ impl Client {
                         Err(e) => e.to_json()
                     };
 
+                    debug!("PRE ENCRYPT");
                     // Encrypt response before sending
                     let encrypted_response = cipher.encrypt(response.to_string().as_bytes())?
                         .into_owned();
+                    debug!("POST ENCRYPT");
                     ws.send(Message::Binary(encrypted_response.into())).await?;
                 },
                 msg = receiver.recv() => {
