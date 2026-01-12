@@ -39,7 +39,15 @@ impl Client {
         // Create a cipher based on the provided encryption mode
         let cipher = Cipher::new(encryption_mode)?;
 
-        let ws = connect(&target).await?;
+        let mut ws = connect(&target).await?;
+        debug!("ws connected, sending test ping");
+
+        if let Err(e) = ws.send(Message::Ping(Vec::new())).await {
+            error!("initial ping send failed: {e:?}");
+        } else {
+            debug!("initial ping send ok");
+        }
+        
         let (sender, receiver) = mpsc::channel(64);
         spawn_task(format!("xswd-relayer-{}", state.get_id()), async move {
             if let Err(e) = Self::background_task(ws, &state, &relayer, receiver, cipher).await {
@@ -83,7 +91,6 @@ impl Client {
     {
         loop {
             select! {
-                biased;
                 msg = ws.next() => {
                     let Some(Ok(msg)) = msg else {
                         break;
