@@ -40,14 +40,6 @@ impl Client {
         let cipher = Cipher::new(encryption_mode)?;
 
         let mut ws = connect(&target).await?;
-        debug!("ws connected, sending test ping");
-
-        if let Err(e) = ws.send(Message::Text("ping".into())).await {
-            error!("initial ping send failed: {e:?}");
-        } else {
-            debug!("initial ping send ok");
-        }
-        
         let (sender, receiver) = mpsc::channel(64);
         spawn_task(format!("xswd-relayer-{}", state.get_id()), async move {
             if let Err(e) = Self::background_task(ws, &state, &relayer, receiver, cipher).await {
@@ -120,6 +112,8 @@ impl Client {
                     let Some(msg) = msg else {
                         break;
                     };
+
+                    debug!("SENDING MSG {:?}", msg);
 
                     match msg {
                         InternalMessage::Send(msg) => {
