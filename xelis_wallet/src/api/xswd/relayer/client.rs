@@ -40,6 +40,8 @@ impl Client {
         let cipher = Cipher::new(encryption_mode)?;
 
         let ws = connect(&target).await?;
+        let raw = ws.get_ref(); // or ws.socket(), ws.inner(), etc.
+        debug!("ws url={} ready_state={}", raw.url(), raw.ready_state());
         let (sender, receiver) = mpsc::channel(64);
         spawn_task(format!("xswd-relayer-{}", state.get_id()), async move {
             if let Err(e) = Self::background_task(ws, &state, &relayer, receiver, cipher).await {
@@ -114,13 +116,13 @@ impl Client {
                         break;
                     };
 
+                    debug!("MSG: ws url={} ready_state={}", raw.url(), raw.ready_state());
+
                     match msg {
                         InternalMessage::Send(msg) => {
-    let output = cipher.encrypt(msg.as_bytes())?.into_owned();
-    if let Err(e) = ws.send(Message::Binary(output.into())).await {
-        error!("ws.send failed (client-send path): {e:?} | msg_len={}", msg.len());
-        break; // or return Err(e.into())
-    }
+                            let output = cipher.encrypt(msg.as_bytes())?
+                                .into_owned();
+                            ws.send(Message::Binary(output.into())).await?;
                         },
                         InternalMessage::Close => break,
                     }
