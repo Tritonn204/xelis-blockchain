@@ -106,17 +106,7 @@ impl Client {
                     // Encrypt response before sending
                     let encrypted_response = cipher.encrypt(response.to_string().as_bytes())?
                         .into_owned();
-
-                    #[cfg(not(target_arch = "wasm32"))]
-                    {
-                        ws.send(Message::Binary(encrypted_response.into())).await?;
-                    }
-
-                    #[cfg(target_arch = "wasm32")]
-                    {
-                        let b64 = base64::encode(&encrypted_response);
-                        ws.send(Message::Text(b64)).await?;
-                    }
+                    ws.send(Message::Binary(encrypted_response.into())).await?;
                 },
                 msg = receiver.recv() => {
                     let Some(msg) = msg else {
@@ -125,20 +115,9 @@ impl Client {
 
                     match msg {
                         InternalMessage::Send(msg) => {
-                            debug!("SENDING MSG {:?}", msg);
                             let output = cipher.encrypt(msg.as_bytes())?
                                 .into_owned();
-
-                            #[cfg(not(target_arch = "wasm32"))]
-                            {
-                                ws.send(Message::Binary(output.into())).await?;
-                            }
-
-                            #[cfg(target_arch = "wasm32")]
-                            {
-                                let b64 = base64::encode(&output);
-                                ws.send(Message::Text(b64)).await?;
-                            }
+                            ws.send(Message::Binary(output.into())).await?;
                         },
                         InternalMessage::Close => break,
                     }
