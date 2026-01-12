@@ -113,10 +113,9 @@ impl Client {
                         break;
                     };
 
-                    debug!("SENDING MSG {:?}", msg);
-
                     match msg {
                         InternalMessage::Send(msg) => {
+                            debug!("SENDING MSG {:?}", msg.as);
                             let output = cipher.encrypt(msg.as_bytes())?
                                 .into_owned();
                             ws.send(Message::Binary(output.into())).await?;
