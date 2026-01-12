@@ -116,6 +116,7 @@ impl Client {
                         break;
                     };
 
+                    let raw = ws.get_ref();
                     debug!("MSG: ws url={} ready_state={}", raw.url(), raw.ready_state());
 
                     match msg {
