@@ -116,11 +116,11 @@ impl Client {
 
                     match msg {
                         InternalMessage::Send(msg) => {
-                            debug!("PRE ENCRYPT");
-                            let output = cipher.encrypt(msg.as_bytes())?
-                                .into_owned();
-                            debug!("POST ENCRYPT");
-                            ws.send(Message::Binary(output.into())).await?;
+    let output = cipher.encrypt(msg.as_bytes())?.into_owned();
+    if let Err(e) = ws.send(Message::Binary(output.into())).await {
+        error!("ws.send failed (client-send path): {e:?} | msg_len={}", msg.len());
+        break; // or return Err(e.into())
+    }
                         },
                         InternalMessage::Close => break,
                     }
