@@ -97,17 +97,16 @@ impl Client {
                     };
 
                     let output = cipher.decrypt(bytes)?;
+
                     let response = match relayer.on_message(state, &output).await {
                         Ok(None) => continue,
                         Ok(Some(value)) => value,
                         Err(e) => e.to_json()
                     };
 
-                    debug!("PRE ENCRYPT");
                     // Encrypt response before sending
                     let encrypted_response = cipher.encrypt(response.to_string().as_bytes())?
                         .into_owned();
-                    debug!("POST ENCRYPT");
                     ws.send(Message::Binary(encrypted_response.into())).await?;
                 },
                 msg = receiver.recv() => {
@@ -117,8 +116,10 @@ impl Client {
 
                     match msg {
                         InternalMessage::Send(msg) => {
+                            debug!("PRE ENCRYPT");
                             let output = cipher.encrypt(msg.as_bytes())?
                                 .into_owned();
+                            debug!("POST ENCRYPT");
                             ws.send(Message::Binary(output.into())).await?;
                         },
                         InternalMessage::Close => break,
