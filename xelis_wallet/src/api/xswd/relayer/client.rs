@@ -40,8 +40,6 @@ impl Client {
         let cipher = Cipher::new(encryption_mode)?;
 
         let ws = connect(&target).await?;
-        let raw = ws.get_ref(); // or ws.socket(), ws.inner(), etc.
-        debug!("ws url={} ready_state={}", raw.url(), raw.ready_state());
         let (sender, receiver) = mpsc::channel(64);
         spawn_task(format!("xswd-relayer-{}", state.get_id()), async move {
             if let Err(e) = Self::background_task(ws, &state, &relayer, receiver, cipher).await {
@@ -85,6 +83,7 @@ impl Client {
     {
         loop {
             select! {
+                biased;
                 msg = ws.next() => {
                     let Some(Ok(msg)) = msg else {
                         break;
@@ -99,7 +98,6 @@ impl Client {
                     };
 
                     let output = cipher.decrypt(bytes)?;
-
                     let response = match relayer.on_message(state, &output).await {
                         Ok(None) => continue,
                         Ok(Some(value)) => value,
@@ -115,9 +113,6 @@ impl Client {
                     let Some(msg) = msg else {
                         break;
                     };
-
-                    let raw = ws.get_ref();
-                    debug!("MSG: ws url={} ready_state={}", raw.url(), raw.ready_state());
 
                     match msg {
                         InternalMessage::Send(msg) => {
